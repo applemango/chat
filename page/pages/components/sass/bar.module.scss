@@ -1,0 +1,206 @@
+.main {
+    width: 72px;
+    height: calc(100vh - 72px);
+}
+.chat {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    height: 100%;
+    &>div {
+        height: 50%;
+        &:not(:first-child) {
+            border-top: 1px solid #eee;
+        }
+    }
+}
+
+._ {
+    position: absolute;
+    border-right: 1px solid #eee;
+    background-color: #fff;
+    position: relative;
+    width: 72px;
+    height: 100%;
+    padding: 8px 0;
+    z-index: 2;
+    //transition: all 0.3s ease;
+}
+._.open {
+    width: 248px;
+    box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+    overflow: hidden;
+}
+
+.icon_ui {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 8px 0;
+    p {
+        margin: 0;
+        color: #444;
+        margin-left: 8px;
+    }
+}
+
+.friends_chat_top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    .icon_ui {
+        width: fit-content;
+        position: relative;
+        left: 22px;
+        p {
+            position: relative;
+            bottom: 2px;
+        }
+    }
+    .create {
+        cursor: pointer;
+        border: none;
+        background-color: #fff;
+        height: 38px;
+        width: 38px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-right: 10px;
+        border-radius: 100%;
+        transition: all 0.3s ease;
+        &:hover {
+            background-color: #eee;
+        }
+    }
+
+}
+
+.actionMenuContainer {
+    position: absolute;
+    width: 100%;
+}
+.actionMenu  {
+    button {
+        border: none;
+        outline: none;
+        background-color: none;
+        background: none;
+        border-radius: 100%;
+        padding: 0;
+        margin: 0;
+    }
+}
+.actionMenuMain {
+    position: absolute;
+    right: 10px;
+    bottom: 22px;
+    > div {
+        position: fixed;
+        z-index: 100;
+        background-color: #fff;
+        border-radius: 6px;
+        //border: 1px solid #eee;
+        padding: 3px 6px;
+        box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+    }
+    .button {
+        padding: 4px 12px;
+        margin: 6px 2px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        &:hover {
+            background-color: #f5f5f5;
+        }
+        p {
+            margin: 2px 6px;
+            margin-bottom: 4px;
+            color: #222;
+        }
+        .icon_ {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+    }
+}
+.actionMenu.actionMenu {
+    margin: 0;
+}
+.user:hover .icon {
+    opacity: 1;
+}
+.user .icon {
+    opacity: 0;
+}
+.user.active .icon:hover {
+    background-color: #27ae6001;
+}
+.icon {
+    width: 42px;
+    height: 42px;
+    position: relative;
+    right: -0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    border-radius: 100%;
+    transition: background 0.3s ease, opacity 0.3s ease;
+    outline: 0px solid #fff;
+
+    outline: 2px solid #fff;
+    background-color: #fff;
+    &:hover {
+        //background-color: #fff;
+        //outline: 1px solid #fff;
+        background-color: #eee;
+    }
+}
+.user {
+    > div:nth-child(1) {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        margin: 6px 0;
+    }
+    cursor: pointer;
+    width: calc(100% - 12px);
+    margin: 0px 0;
+    padding: 0px 0px 0 6px;
+    border-top-right-radius: 60px;
+    border-bottom-right-radius: 60px;
+    display: flex;
+    align-items: center;
+    //justify-content: flex-start;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    &:hover {
+        background-color: #eee;
+    }
+    &.active {
+        background-color: #27ae6020;
+    }
+    &:first-child {
+        margin: 0 0 0px 0;
+    }
+}
+.open .icon_user {
+    margin-right: 18px;
+}
+.icon_user {
+    width: 32px;
+    height: 32px;
+    background-color: #ccc;
+    //background-color: #f1c40f;
+    border-radius: 100%;
+    position: relative;
+    left: 6px;
+
+    left: 12px;
+    //transition: left 0.3s ease;
+}
