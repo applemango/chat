@@ -26,6 +26,8 @@ import CreateSpace from './components/createSpace';
 import CreateUser from './components/addUser';
 import { getRequester, getRequesting, requestChat, UnRequestChat } from '../lib/request';
 
+import toast, { Toaster } from 'react-hot-toast';
+
 const socket = io("ws://192.168.1.2:5000", {
     query : {
         token: getToken()
@@ -54,6 +56,85 @@ const Home: NextPage = () => {
         setLocation("")
         setLocationType("user")
         setMessages([])
+    }
+
+    const notify = (msg: any, space: boolean = false) => {
+        //toast("here is your toast")
+        toast((t) => (
+            <span className={styles.toast}>
+                <div className={styles.toast_main} onClick={() => {
+                    if(space) {
+                        changeLocationSpace(msg.to)
+                    } else {
+                        changeLocationUser(msg.from)
+                    }
+                }}>
+                    <div className={styles.toast_user_icon}></div>
+                    <div>
+                        <p className={styles.toast_user_name}>{space ? `${msg.space_name} - ${msg.from_user_name}`  : msg.from_user_name}</p>
+                        <div className={styles.toast_message}>
+                            {/* msg.body &&
+                                msg.body.split("\n").map((line:string, index:number) => (
+                                    <p>{line}</p>
+                                ))*/}
+                            <p>{msg.body}</p>
+                        </div>
+                    </div>
+                </div>
+                <button className={styles.toast_close} onClick={() => toast.dismiss(t.id)}>
+                    Close
+                </button>
+            </span>
+        ));
+        //console.log(msg, space)
+    }
+    //useEffect(() => {
+    //    /*{
+    //        "body": "test",
+    //        "to": 1,
+    //        "from": 2,
+    //        "timestamp": "2022-10-27 07:33:20",
+    //        "from_user_name": "mango",
+    //        "locationType": "user"
+    //    }*/
+    //    /*{
+    //        "body": "123",
+    //        "to": 1,
+    //        "from": 2,
+    //        "from_user_name": "mango",
+    //        "space_name"
+    //        "timestamp": "2022-10-27 07:33:48",
+    //        "locationType": "space"
+    //    }*/
+    //    notify({
+    //        "body": "Hello, world!",
+    //        "to": 1,
+    //        "from": 2,
+    //        "timestamp": "2022-10-27 07:33:20",
+    //        "from_user_name": "mango",
+    //        "locationType": "user"
+    //    })
+    //})
+
+    const addMessage = (msg: any, space: boolean = false) => {
+        //console.log(location, msg)
+        //if (space) {
+        //    if(location == String(msg.to) && locationType == "space") {
+        //        setMessages((messages:any) => [...messages, msg])
+        //    }
+        //    //if(location == String(msg.to) && locationType == "space") {
+        //    //    setMessages((messages:any) => [...messages, msg])
+        //    //}
+        //    return
+        //}
+        ////f(location == String(msg.from) && locationType == "user") {
+        ////   setMessages((messages:any) => [ ...messages, msg])
+        ////
+        //if(location == String(msg.to) || location == String(msg.from) && locationType == "user") {
+        //    setMessages((messages:any) => [ ...messages, msg])
+        //}
+        msg.locationType = space ? "space" : "user"
+        setMessages((messages:any) => [ ...messages, msg])
     }
 
     const changeLocationUser = async (id : number) => {
@@ -212,37 +293,51 @@ const Home: NextPage = () => {
             console.log(msg)
         })*/
         socket.on("message_from_user", (msg: any) => {
-            if(location == String(msg.from) && locationType == "user") {
-                setMessages((messages:any) => [ ...messages, msg])
-            }
+            addMessage(msg)
+            notify(msg)
+            //console.log("message_from_user")
+            //console.log(msg.from, location)
+            //console.log(msg, location, locationType, location == String(msg.to) && locationType == "user",location == String(msg.to))
+            //if(location == String(msg.from) && locationType == "user") {
+            //    setMessages((messages:any) => [ ...messages, msg])
+            //}
             //setMessages((messages:any) => [...messages, msg])
             //console.log("from",msg)
         })
         socket.on("message_to_user", (msg:any) => {
-            if(location == String(msg.to) && locationType == "user") {
-                setMessages((messages:any) => [ ...messages, msg])
-            }
+            addMessage(msg)
+            //console.log("message_to_user")
+            //console.log(msg.to, location)
+            //console.log(msg, location, locationType, location == String(msg.to) && locationType == "user")
+            //if(location == String(msg.to) && locationType == "user") {
+            //    setMessages((messages:any) => [ ...messages, msg])
+            //}
             //console.log("to",msg)
         })
 
         socket.on("message_from_space", (msg: any) => {
-            if(location == String(msg.to) && locationType == "space") {
-                setMessages((messages:any) => [...messages, msg])
-            }
+            addMessage(msg, true)
+            notify(msg, true)
+            //if(location == String(msg.to) && locationType == "space") {
+            //    setMessages((messages:any) => [...messages, msg])
+            //}
             //setMessages((messages:any) => [...messages, msg])
         })
         socket.on("message_to_space", (msg: any) => {
-            if(location == String(msg.to) && locationType == "space") {
-                setMessages((messages:any) => [...messages, msg])
-            }
+            addMessage(msg, true)
+            //if(location == String(msg.to) && locationType == "space") {
+            //    setMessages((messages:any) => [...messages, msg])
+            //}
             //setMessages((messages:any) => [...messages, msg])
         })
 
         socket.on("chat_request_replay", (msg: any) => {
+            console.log("chat_request_replay")
             reload()
         })
 
         socket.on("chat_un_request_replay", (msg: any) => {
+            console.log("chat_un_request_replay")
             reload()
         })
     },[])
@@ -292,6 +387,8 @@ const Home: NextPage = () => {
                         createSpace={createSpace_}
                         spaces={spaces}
                         addUser={addUser_}
+                        socket={socket}
+                        reload={reload}
                     />
                     { location &&
                         <div style={{width: "100%"}}>
@@ -299,6 +396,8 @@ const Home: NextPage = () => {
                             <div className={styles.chat}>
                                 <Chat
                                     messages={messages}
+                                    location={location}
+                                    locationType={locationType}
                                 />
                                 <ChatInput
                                     sendMessage={sendMessageEasy}
@@ -347,6 +446,14 @@ const Home: NextPage = () => {
                         </div>}
                 </div>
             </div>
+            <Toaster
+                position="bottom-right"
+                reverseOrder={false}
+                containerStyle={location != "" ? {
+                    //position: "absolute",
+                    bottom: 94
+                }: {}}
+            />
         </>
     )
 }

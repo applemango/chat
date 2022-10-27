@@ -38,7 +38,6 @@ migrate = Migrate(app, db)
 ###########################################
 ##########          DB           ##########
 ###########################################
-
 ###########################################
 # followers -> friends
 # follower -> requester
@@ -257,6 +256,7 @@ def socket_send_message_to_space(message):
             "to": message["to"],
             "from": u.id,
             "from_user_name": u.name,
+            "space_name": t.name,
             "timestamp": str(msg.timestamp)
         }, to=str(user.user_id))
     emit("message_to_space",{
@@ -294,8 +294,6 @@ def socket_un_request_reply(message):
             "from": u.id,
             "from_user_name": u.name,
         }, to=str(y.id))
-
-
 
 
 #@socketIo.event
@@ -612,16 +610,16 @@ if __name__ == '__main__':
     #db.drop_all()
     #db.create_all()
 
-    #apple = User(name="apple")
-    #apple.set_password("apple")
-    #db.session.add(apple)
-    #
-    #mango = User(name="mango")
-    #mango.set_password("mango")
-    #db.session.add(mango)
-    #
-    #db.drop_all()
-    #db.create_all()
-    #db.session.commit()
+    apple = User(name="apple")
+    apple.set_password("apple")
+    db.session.add(apple)
+    
+    mango = User(name="mango")
+    mango.set_password("mango")
+    db.session.add(mango)
+    
+    db.drop_all()
+    db.create_all()
+    db.session.commit()
 
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -1,4 +1,7 @@
 import { useState } from "react"
+import { deleteFriends } from "../../lib/request"
+import { leaveSpace } from "../../lib/space"
+import { getToken } from "../../lib/token"
 import { TypeUser } from "../../lib/type"
 import ActionMenu from "./actionMenu"
 import styles from "./sass/bar.module.scss"
@@ -10,7 +13,9 @@ const Bar = ({
     locationType,
     createSpace,
     spaces,
-    addUser
+    addUser,
+    socket,
+    reload
 }:{
     friends: TypeUser[]
     changeUser: Function
@@ -20,6 +25,8 @@ const Bar = ({
     createSpace: Function
     spaces: any[]
     addUser: Function
+    socket: any
+    reload: Function
 }) => {
     const [nowHover, setNowHover] = useState(false)
     const [nowHoverActionMenu, setNowHoverActionMenu] = useState(false)
@@ -74,7 +81,7 @@ const Bar = ({
                                         </div> }
                                 </div>
                                 { nowHover &&
-                                    <Menu space={false} data={friend} />
+                                    <Menu reload={reload} socket={socket} space={false} data={friend} t={setNowHoverActionMenu} />
                                 }
                             </div>
                     ))}
@@ -127,7 +134,7 @@ const Bar = ({
                                         </div> }
                                 </div>
                                 { nowHover &&
-                                    <Menu space={true} data={space} />
+                                    <Menu reload={reload} socket={socket} space={true} data={space} t={setNowHoverActionMenu} />
                                 }
                             </div>
                         ))}
@@ -137,10 +144,10 @@ const Bar = ({
     </div>
 }
 
-const Menu = ({ space = false, data }:{ space?:boolean, data:any }) => {
+const Menu = ({ space = false, data, t, socket, reload }:{ space?:boolean, data:any, t: Function, socket: any, reload: Function }) => {
     const [show, setShow] = useState(false)
-    return <div></div>/*<ActionMenu className={styles.actionMenu} show={show} setShow={setShow}classNameMain={styles.actionMenuContainer} icon={
-        <div className={styles.icon}>
+    return <ActionMenu className={styles.actionMenu} show={show} setShow={setShow}classNameMain={styles.actionMenuContainer} icon={
+        <div className={styles.icon} onMouseEnter={() => t(true)} onMouseLeave={() => t(false)}>
             <svg xmlns="http://www.w3.org/2000/svg" className="icon icon-tabler icon-tabler-dots" width="24" height="24" viewBox="0 0 24 24" strokeWidth="1.5" stroke="#9e9e9e" fill="none" strokeLinecap="round" strokeLinejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <circle cx="5" cy="12" r="1" />
@@ -149,9 +156,21 @@ const Menu = ({ space = false, data }:{ space?:boolean, data:any }) => {
             </svg>
         </div>
     }>
-        <div className={styles.actionMenuMain}>
+        <div className={styles.actionMenuMain} onMouseEnter={() => t(true)} onMouseLeave={() => t(false)}>
             <div>
-                <div className={styles.button}>
+                <div className={styles.button} onClick={() => {
+                    const l = async () => {
+                        if(space) {
+                            const res = await leaveSpace(data.name)
+                        } else {
+                            const res = await deleteFriends(data.id)
+                            socket.emit("socket_request_reply", {"name":data.name,"token":getToken()})
+                        }
+                        reload()
+                    }
+                    l()
+                    console.log(data)
+                }}>
                     <div>
                         <p style={{color: "#fd0061"}}>{space ? "leave space" : "leave chat"}</p>
                     </div>
@@ -165,6 +184,6 @@ const Menu = ({ space = false, data }:{ space?:boolean, data:any }) => {
                 </div>
             </div>
         </div>
-    </ActionMenu>*/
+    </ActionMenu>
 }
 export default Bar

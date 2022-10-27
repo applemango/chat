@@ -69,3 +69,56 @@
     border-radius: 100%;
     margin-right: 15px;
 }
+
+
+.toast {
+    padding: 10px 0;
+    border-radius: 6px;
+
+    display: flex;
+    .toast_main {
+        cursor: pointer;
+        width: 195px;
+        border-right: 1px solid #eee;
+        margin-right: 15px;
+        padding-right: 15px;
+        display: flex;
+        overflow: hidden;
+        p {
+            margin: 0;
+        }
+    }
+    .toast_user_icon {
+        width: 32px;
+        height: 32px;
+        background-color: #ccc;
+        border-radius: 100%;
+        margin-right: 15px;
+
+        position: relative;
+        top: 5px;
+    }
+    .toast_user_name {
+        font-size: 16px;
+        font-weight: 500;
+        margin-top: 8px;
+        color: #333;
+    }
+    .toast_message {
+        margin: 0;
+        width: 133px;
+        p {
+            word-break: break-all;
+            color: #555;
+        }
+    }
+    .toast_close {
+        cursor: pointer;
+        border: none;
+        outline: none;
+        background-color: #fff;
+        font-weight: 500;
+        font-size: 16px;
+        color: #e74c3c;
+    }
+}

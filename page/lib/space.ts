@@ -1,4 +1,6 @@
+import axios from "axios"
 import { get, getUrl, post } from "./main"
+import { getToken, isLoginAndLogin } from "./token"
 
 export const createSpace = async (name: string, key: string) => {
     try {
@@ -36,5 +38,23 @@ export const getSpaceList = async () => {
     } catch (e) {
         console.log(e)
         return false
+    }
+}
+
+export const leaveSpace = async (space_name: string) => {
+    const lRes = await isLoginAndLogin()
+    if(!lRes) {
+        throw "token not found"
+    }
+    try {
+        const res = await axios.delete(getUrl(`space/leave/${space_name}`),{
+            headers: {
+                "Authorization": "Bearer "+getToken()
+            }
+        })
+        return res.data
+    } catch (e) {
+        console.log(e)
+        return undefined
     }
 }
