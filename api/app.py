@@ -1,5 +1,6 @@
-import os,json
+import os, json, random
 from flask import Flask,jsonify,request, session
+from flask import send_from_directory
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from flask_jwt_extended import get_current_user
@@ -14,6 +15,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room, \
     close_room, rooms, disconnect
 from flask_socketio import ConnectionRefusedError
 from sqlalchemy import and_
+from werkzeug.utils import secure_filename
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__, instance_relative_config=True)
@@ -34,6 +36,8 @@ db = SQLAlchemy(app)
 jwt = JWTManager(app)
 migrate = Migrate(app, db)
 
+uploads_icon_path = os.path.join(basedir, 'icons')
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 ###########################################
 ###########################################
 ##########          DB           ##########
@@ -93,6 +97,7 @@ def get_user_data(user: User):
     return {
         "id": user.id,
         "name": user.name,
+        "icon": user.icon
     }
     
 
@@ -100,6 +105,7 @@ class Space(db.Model): # type: ignore
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String())
     secret_key = db.Column(db.String())
+    icon = db.Column(db.String())
     def set_secret_key(self, key):
         self.secret_key = generate_password_hash(key)
     def check_secret_key(self, key):
@@ -119,40 +125,58 @@ class Space_user(db.Model): # type: ignore
 class  Message_space(db.Model): # type: ignore
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     to_space = db.Column(db.Integer, db.ForeignKey("space.id"))
-    to_space_name = db.Column(db.String)
+    #to_space_name = db.Column(db.String)
     from_user = db.Column(db.Integer, db.ForeignKey("user.id"))
-    from_user_name = db.Column(db.String)
+    #from_user_name = db.Column(db.String)
     body = db.Column(db.String)
     timestamp = db.Column(db.DateTime, index=True, server_default=func.now())
 def get_space_message_data(message: Message_space):
+    user = User.query.get(message.from_user)
+    to_space = Space.query.get(message.to_space)
     return {
         "id": message.id,
-        "to_space": message.to_space,
-        "to_space_name": message.to_space_name,
-        "from_user": message.from_user,
-        "from_user_name": message.from_user_name,
+        "to": message.to_space,
+        "to_space_name": to_space.name,
+        "from": message.from_user,
+        "from_user_name": user.name,
+        "from_user_icon": user.icon,
         "body": message.body,
-        "timestamp": message.timestamp
+        "timestamp": message.timestamp,
+
+        "space_name": to_space.name # for compatibility
     }
+def get_space_message_data_socket(message:Message_space):
+    data = get_space_message_data(message)
+    data["timestamp"] = str(message.timestamp)
+    return data
 
 class Message_user(db.Model):  # type: ignore
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     to_user = db.Column(db.Integer, db.ForeignKey("user.id"))
-    to_user_name = db.Column(db.String())
+    #to_user_name = db.Column(db.String())
     from_user = db.Column(db.Integer, db.ForeignKey("user.id"))
-    from_user_name = db.Column(db.String())
+    #from_user_name = db.Column(db.String())
     body = db.Column(db.String)
     timestamp = db.Column(db.DateTime, index=True, server_default=func.now())
 def get_message_data(message: Message_user):
+    from_user = User.query.get(message.from_user)
+    to_user = User.query.get(message.to_user)
     return {
         "id": message.id,
-        "to_user": message.to_user,
-        "to_user_name": message.to_user_name,
-        "from_user": message.from_user,
-        "from_user_name": message.from_user_name,
+        "to": message.to_user,
+        "to_user_name": to_user.name,
+        "to_user_icon": to_user.icon,
+        "from": message.from_user,
+        "from_user_name": from_user.name,
+        "from_user_icon": from_user.icon,
         "body": message.body,
         "timestamp": message.timestamp
     }
+def get_message_data_socket(message: Message_user):
+    data = get_message_data(message)
+    data["timestamp"] = str(message.timestamp)
+    return data
+
 def get_messages_user(me: int, you: int)-> Message_user:
     messages = Message_user.query.filter(and_(Message_user.to_user == me,Message_user.from_user == you) | and_(Message_user.to_user == you,Message_user.from_user == me))
     return messages
@@ -203,29 +227,31 @@ def socket_send_message_to_user(message):
         
     msg = Message_user(
         to_user=t.id,
-        to_user_name=t.name,
+        #to_user_name=t.name,
         from_user=u.id,
-        from_user_name=u.name,
+        #from_user_name=u.name,
         body=message["body"]
     )
 
     db.session.add(msg)
     db.session.commit()
 
-    emit("message_from_user",{
-        "body":message["body"],
-        "to":message["to"],
-        "from":user_id,
-        "timestamp":str(msg.timestamp),
-        "from_user_name":msg.from_user_name
-    },to=str(message["to"]))
-    emit("message_to_user",{
-        "body":message["body"],
-        "to":message["to"],
-        "from":user_id,
-        "timestamp":str(msg.timestamp),
-        "from_user_name":msg.from_user_name
-    }, to=str(user_id))
+    #emit("message_from_user",{
+    #    "body":message["body"],
+    #    "to":message["to"],
+    #    "from":user_id,
+    #    "timestamp":str(msg.timestamp),
+    #    "from_user_name":msg.from_user_name
+    #},to=str(message["to"]))
+    emit("message_from_user", get_message_data_socket(msg), to=str(message["to"]))
+    #emit("message_to_user",{
+    #    "body":message["body"],
+    #    "to":message["to"],
+    #    "from":user_id,
+    #    "timestamp":str(msg.timestamp),
+    #    "from_user_name":msg.from_user_name
+    #}, to=str(user_id))
+    emit("message_to_user", get_message_data_socket(msg), to=str(user_id))
 
 @socketIo.event
 def socket_send_message_to_space(message):
@@ -241,9 +267,9 @@ def socket_send_message_to_space(message):
 
     msg = Message_space(
         to_space=t.id,
-        to_space_name=t.name,
+        #to_space_name=t.name,
         from_user= u.id,
-        from_user_name=u.name,
+        #from_user_name=u.name,
         body= message["body"],
     )
     db.session.add(msg)
@@ -251,21 +277,25 @@ def socket_send_message_to_space(message):
 
     space_users = Space_user.query.filter(Space_user.space_id == t.id).filter(Space_user.user_id != u.id)
     for user in space_users:
-        emit("message_from_space",{
-            "body": message["body"],
-            "to": message["to"],
-            "from": u.id,
-            "from_user_name": u.name,
-            "space_name": t.name,
-            "timestamp": str(msg.timestamp)
-        }, to=str(user.user_id))
-    emit("message_to_space",{
-        "body": message["body"],
-        "to": message["to"],
-        "from": u.id,
-        "from_user_name": u.name,
-        "timestamp": str(msg.timestamp)
-    }, to=str(u.id))
+        #emit("message_from_space",{
+        #    "body": message["body"],
+        #    "to": message["to"],
+        #    "from": u.id,
+        #    "from_user_name": u.name,
+        #    "from_user_icon": u.icon,
+        #    "space_name": t.name,
+        #    "timestamp": str(msg.timestamp)
+        #}, to=str(user.user_id))
+        emit("message_from_space", get_space_message_data_socket(msg), to=str(user.user_id))
+    #emit("message_to_space",{
+    #    "body": message["body"],
+    #    "to": message["to"],
+    #    "from": u.id,
+    #    "from_user_name": u.name,
+    #    "from_user_icon": u.icon,
+    #    "timestamp": str(msg.timestamp)
+    #}, to=str(u.id))
+    emit("message_to_space", get_space_message_data_socket(msg), to=str(u.id))
 
 @socketIo.event
 def socket_request_reply(message):
@@ -275,10 +305,11 @@ def socket_request_reply(message):
     u:User = User.query.get(int(token_data["sub"]))
     y = User.query.filter(message["name"] == User.name).first()
     if u and y:
-        print("send",y.id)
+        #print("send",y.id)
         emit("chat_request_replay",{
             "from": u.id,
             "from_user_name": u.name,
+            "from_user_icon": u.icon,
         }, to=str(y.id))
 
 @socketIo.event
@@ -289,10 +320,11 @@ def socket_un_request_reply(message):
     u:User = User.query.get(int(token_data["sub"]))
     y = User.query.filter(message["name"] == User.name).first()
     if u and y:
-        print("send",y.id)
+        #print("send",y.id)
         emit("chat_un_request_replay",{
             "from": u.id,
             "from_user_name": u.name,
+            "from_user_icon": u.icon,
         }, to=str(y.id))
 
 
@@ -316,6 +348,48 @@ def socket_un_request_reply(message):
 ##########         API           ##########
 ###########################################
 ###########################################
+
+@app.route("/post/icon", methods=["POST"])
+@cross_origin()
+@jwt_required()
+def add_user_icon():
+    id = current_user.id  # type: ignore
+    if "file" not in request.files:
+        return jsonify("file not found"), 400
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify("filename not found"), 400
+    if file.filename and file and allowed_file(file.filename):
+        random_str = generate_random_str(5)
+        #filename = secure_filename(random_str+"_"+file.filename)
+        filename = secure_filename("user{}_random{}".format(id,random_str))
+        file.save(os.path.join(uploads_icon_path, filename))
+        u = User.query.get(id)
+        u.icon = filename
+        db.session.add(u)
+        db.session.commit()
+        return jsonify("ok"),200
+    return jsonify("error"),400
+
+@app.route("/icons/<path>")
+@cross_origin()
+def send_icon(path):
+    return send_from_directory(uploads_icon_path,path)
+
+@app.route("/icons/id/<user_id>")
+@cross_origin()
+def send_icon_user_id(user_id):
+    u = User.query.get(int(user_id))
+    path = u.icon
+    return send_from_directory(uploads_icon_path,path)
+
+@app.route("/icons/space/id/<space_id>")
+@cross_origin()
+def send_icon_space_id(space_id):
+    s = Space.query.get(int(space_id))
+    path = s.icon
+    return send_from_directory(uploads_icon_path,path)
+
 @app.route("/friends/list/", methods=["GET"])
 @cross_origin()
 @jwt_required()
@@ -407,13 +481,14 @@ def get_chat_data(user_id):
     result = []
     for msg in messages:
         data = get_message_data(msg)
-        result.append({
-            "body":data["body"],
-            "to":data["to_user"],
-            "from":data["from_user"],
-            "timestamp":data["timestamp"],
-            "from_user_name":data["from_user_name"]
-        })
+        #result.append({
+        #    "body":data["body"],
+        #    "to":data["to"],
+        #    "from":data["from"],
+        #    "timestamp":data["timestamp"],
+        #    "from_user_name":data["from_user_name"]
+        #})
+        result.append(data)
     return jsonify({"data": result})
 
 
@@ -428,13 +503,14 @@ def get_space_chat_data(space_id):
     result = []
     for msg in messages:
         data = get_space_message_data(msg)
-        result.append({
-            "body": data["body"],
-            "to":data["to_space"],
-            "from": data["from_user"],
-            "timestamp": data["timestamp"],
-            "from_user_name": data["from_user_name"]
-        })
+        #result.append({
+        #    "body": data["body"],
+        #    "to":data["to_space"],
+        #    "from": data["from_user"],
+        #    "timestamp": data["timestamp"],
+        #    "from_user_name": data["from_user_name"]
+        #})
+        result.append(data)
     return jsonify({"data":result})
 
 
@@ -527,6 +603,14 @@ def get_token_data(jwt):
         return False
     data = decode_token(jwt)
     return data
+
+def allowed_file(filename):
+	return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def generate_random_str(length: int) -> str:
+    a,r = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",""
+    for i in range(length):r += random.choice(a)
+    return r
 
 ############################################################################################################################################################
 ############################################################################################################################################################

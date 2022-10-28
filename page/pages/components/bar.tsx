@@ -5,6 +5,7 @@ import { getToken } from "../../lib/token"
 import { TypeUser } from "../../lib/type"
 import ActionMenu from "./actionMenu"
 import styles from "./sass/bar.module.scss"
+import UserIcon from "./userIcon"
 const Bar = ({
     friends,
     changeUser,
@@ -75,7 +76,8 @@ const Bar = ({
                                 changeUser(friend.id)
                             }}>
                                 <div>
-                                    <div className={styles.icon_user}></div>
+                                        {/*<div className={styles.icon_user}></div>*/}
+                                        <UserIcon className={styles.icon_user} userId={friend.id} />
                                         { nowHover && <div className={styles.info}>
                                             {friend.name}
                                         </div> }
@@ -128,7 +130,8 @@ const Bar = ({
                                 changeSpace(space.id)
                             }}>
                                 <div>
-                                    <div className={styles.icon_user}></div>
+                                    {/*<div className={styles.icon_user}></div>*/}
+                                    <UserIcon className={styles.icon_user} spaceId={space.id} />
                                     { nowHover && <div className={styles.info}>
                                             {space.name}
                                         </div> }

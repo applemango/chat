@@ -27,6 +27,8 @@ import CreateUser from './components/addUser';
 import { getRequester, getRequesting, requestChat, UnRequestChat } from '../lib/request';
 
 import toast, { Toaster } from 'react-hot-toast';
+import { settingsIcon } from '../lib/postUserData';
+import UserIcon from './components/userIcon';
 
 const socket = io("ws://192.168.1.2:5000", {
     query : {
@@ -52,10 +54,71 @@ const Home: NextPage = () => {
     const [isOpenModal, setIsOpenModal] = useState(false)
     const [modalType, setModalType] = useState("")
 
+    const [settings, setSettings] = useState(false)
+    const [settingsId, setSettingsId] = useState("")
+
     const goHome = () => {
         setLocation("")
         setLocationType("user")
         setMessages([])
+    }
+    const showSettings = () => {
+        if(settings) {
+            setSettings(false)
+            toast.dismiss(settingsId)
+            return
+        }
+        setSettings(true)
+        toast((t) => {
+            const [selectedFile, setSelectedFile]:any = useState<File>();
+            useEffect(() => {
+                setSettingsId(t.id)
+            },[t])
+            //setSettingsId(t.id)
+            return  <span className={styles.toast_settings}>
+                <span className={styles.toast}>
+                    <div className={styles.toast_main}>
+
+                            <h2 className={styles.settings_name}>icon</h2>
+                            <div className = {styles.settings_icon }>
+                                <input className = {styles.input_file} name="file" type="file" onChange = {(e) => e.target.files ? setSelectedFile(e.target.files[0]) : ""} accept=".png, .jpg" />
+                                <div className = {styles.input_file_}>
+                                    <div className = {styles.input_file__}>
+                                        <div>
+                                            { selectedFile && (
+                                                <div className = {styles.logo}></div>
+                                            )}
+                                            <p className = { selectedFile ? (styles.active) : ("")}>{selectedFile ? (selectedFile.name) : ("Drag and drop image or")}</p>
+                                            { !selectedFile && (
+                                                <button>Upload</button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                    </div>
+                    <div className={styles.toast_buttons}>
+                        <button className={styles.toast_close} onClick={() => {
+                            setSettings(false)
+                            toast.dismiss(t.id)
+                        }}>
+                            Close
+                        </button>
+                        <button className={styles.toast_apply} onClick={() => {
+                            settingsIcon(selectedFile)
+                            setSettings(false)
+                            toast.dismiss(t.id)
+                        }}>
+                            apply
+                        </button>
+                    </div>
+                </span>
+            </span>
+        }, {
+            duration: Infinity,
+            position: "bottom-left"
+        })
     }
 
     const notify = (msg: any, space: boolean = false) => {
@@ -69,7 +132,8 @@ const Home: NextPage = () => {
                         changeLocationUser(msg.from)
                     }
                 }}>
-                    <div className={styles.toast_user_icon}></div>
+                    {/*<div className={styles.toast_user_icon}></div>*/}
+                    <UserIcon width={32} height={32} className={styles.toast_user_icon} userId={msg.from} />
                     <div>
                         <p className={styles.toast_user_name}>{space ? `${msg.space_name} - ${msg.from_user_name}`  : msg.from_user_name}</p>
                         <div className={styles.toast_message}>
@@ -376,6 +440,7 @@ const Home: NextPage = () => {
             <div className={styles._}>
                 <Header
                     goHome={goHome}
+                    settings={showSettings}
                 />
                 <div style={{display: "flex"}}>
                     <Bar
@@ -412,7 +477,8 @@ const Home: NextPage = () => {
                                     { requesters.map((requester:any, i:number)=>(
                                         <div className={styles.request} key={i}>
                                             <div className={styles.user_data}>
-                                                <div className={styles.user_icon}></div>
+                                                {/*<div className={styles.user_icon}></div>*/}
+                                                <UserIcon width={38} height={38} className={styles.user_icon} userId={requester.id} />
                                                 <p>{requester.name}</p>
                                             </div>
                                             <button onClick={() => addUser__(requester.name)}>
@@ -430,7 +496,8 @@ const Home: NextPage = () => {
                                 { requesting.map((requester:any, i:number)=>(
                                         <div className={styles.request} key={i}>
                                             <div className={styles.user_data}>
-                                                <div className={styles.user_icon}></div>
+                                                {/*<div className={styles.user_icon}></div>*/}
+                                                <UserIcon width={38} height={38} className={styles.user_icon} userId={requester.id} />
                                                 <p>{requester.name}</p>
                                             </div>
                                             <button onClick={() => deleteUser__(requester.name)}>
