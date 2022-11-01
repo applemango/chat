@@ -29,6 +29,7 @@ import { getRequester, getRequesting, requestChat, UnRequestChat } from '../lib/
 import toast, { Toaster } from 'react-hot-toast';
 import { settingsIcon } from '../lib/postUserData';
 import UserIcon from './components/userIcon';
+import { dateConversion } from '../lib/utility';
 
 const socket = io("ws://192.168.1.2:5000", {
     query : {
@@ -132,15 +133,10 @@ const Home: NextPage = () => {
                         changeLocationUser(msg.from)
                     }
                 }}>
-                    {/*<div className={styles.toast_user_icon}></div>*/}
                     <UserIcon width={32} height={32} className={styles.toast_user_icon} userId={msg.from} />
                     <div>
                         <p className={styles.toast_user_name}>{space ? `${msg.space_name} - ${msg.from_user_name}`  : msg.from_user_name}</p>
                         <div className={styles.toast_message}>
-                            {/* msg.body &&
-                                msg.body.split("\n").map((line:string, index:number) => (
-                                    <p>{line}</p>
-                                ))*/}
                             <p>{msg.body}</p>
                         </div>
                     </div>
@@ -150,54 +146,12 @@ const Home: NextPage = () => {
                 </button>
             </span>
         ));
-        //console.log(msg, space)
     }
-    //useEffect(() => {
-    //    /*{
-    //        "body": "test",
-    //        "to": 1,
-    //        "from": 2,
-    //        "timestamp": "2022-10-27 07:33:20",
-    //        "from_user_name": "mango",
-    //        "locationType": "user"
-    //    }*/
-    //    /*{
-    //        "body": "123",
-    //        "to": 1,
-    //        "from": 2,
-    //        "from_user_name": "mango",
-    //        "space_name"
-    //        "timestamp": "2022-10-27 07:33:48",
-    //        "locationType": "space"
-    //    }*/
-    //    notify({
-    //        "body": "Hello, world!",
-    //        "to": 1,
-    //        "from": 2,
-    //        "timestamp": "2022-10-27 07:33:20",
-    //        "from_user_name": "mango",
-    //        "locationType": "user"
-    //    })
-    //})
 
     const addMessage = (msg: any, space: boolean = false) => {
-        //console.log(location, msg)
-        //if (space) {
-        //    if(location == String(msg.to) && locationType == "space") {
-        //        setMessages((messages:any) => [...messages, msg])
-        //    }
-        //    //if(location == String(msg.to) && locationType == "space") {
-        //    //    setMessages((messages:any) => [...messages, msg])
-        //    //}
-        //    return
-        //}
-        ////f(location == String(msg.from) && locationType == "user") {
-        ////   setMessages((messages:any) => [ ...messages, msg])
-        ////
-        //if(location == String(msg.to) || location == String(msg.from) && locationType == "user") {
-        //    setMessages((messages:any) => [ ...messages, msg])
-        //}
         msg.locationType = space ? "space" : "user"
+        //const date = new Date(msg.timestamp).getTime() + ( 1000*60*60*9 ) 
+        //msg.timestamp = date
         setMessages((messages:any) => [ ...messages, msg])
     }
 
@@ -206,6 +160,7 @@ const Home: NextPage = () => {
         setLocation(String(id))
         const res = await getUserChatHistory(id)
         setMessages(res)
+        console.log(res)
     }
     const changeLocationSpace = async (id : number) => {
         setLocationType("space")
@@ -213,28 +168,28 @@ const Home: NextPage = () => {
         const res = await getSpaceChatHistory(id)
         setMessages(res)
     }
-    const sendMessageUser = async (to : number, body : string) => {
+    const sendMessageUser = async (to : number, body : string, path: string) => {
         //console.log(to, body)
         //return
         const res = await isLoginAndLogin()
         if(res) {
-            socket.emit("socket_send_message_to_user", {"body":body,"to":to,"token":getToken()})
+            socket.emit("socket_send_message_to_user", {"body":body,"file":path,"to":to,"token":getToken()})
             return
         }
         router.replace("/login")
     }
-    const sendMessageSpace = async (to : number, body : string) => {
+    const sendMessageSpace = async (to : number, body : string, path: string) => {
         const res = await isLoginAndLogin()
         if(res) {
-            socket.emit("socket_send_message_to_space", {"body":body,"to":to,"token":getToken()})
+            socket.emit("socket_send_message_to_space", {"body":body,"file":path,"to":to,"token":getToken()})
         }
     }
-    const sendMessageEasy = async (body : string) => {
+    const sendMessageEasy = async (body : string, path: string) => {
         if(locationType == "user") {
-            const res = await sendMessageUser(Number(location), body)
+            const res = await sendMessageUser(Number(location), body, path)
         }
         if(locationType == "space") {
-            const res = await sendMessageSpace(Number(location), body)
+            const res = await sendMessageSpace(Number(location), body, path)
         }
     }
 
@@ -349,50 +304,20 @@ const Home: NextPage = () => {
     }
 
     useEffect(() => {
-        /*socket.on('connect', function() {
-            console.log("Connected")
-            socket.emit('socket_connect', {data: 'I\'m connected!'});
-        });*/
-        /*socket.on("my_response", (msg: any) => {
-            console.log(msg)
-        })*/
         socket.on("message_from_user", (msg: any) => {
             addMessage(msg)
             notify(msg)
-            //console.log("message_from_user")
-            //console.log(msg.from, location)
-            //console.log(msg, location, locationType, location == String(msg.to) && locationType == "user",location == String(msg.to))
-            //if(location == String(msg.from) && locationType == "user") {
-            //    setMessages((messages:any) => [ ...messages, msg])
-            //}
-            //setMessages((messages:any) => [...messages, msg])
-            //console.log("from",msg)
         })
         socket.on("message_to_user", (msg:any) => {
             addMessage(msg)
-            //console.log("message_to_user")
-            //console.log(msg.to, location)
-            //console.log(msg, location, locationType, location == String(msg.to) && locationType == "user")
-            //if(location == String(msg.to) && locationType == "user") {
-            //    setMessages((messages:any) => [ ...messages, msg])
-            //}
-            //console.log("to",msg)
         })
 
         socket.on("message_from_space", (msg: any) => {
             addMessage(msg, true)
             notify(msg, true)
-            //if(location == String(msg.to) && locationType == "space") {
-            //    setMessages((messages:any) => [...messages, msg])
-            //}
-            //setMessages((messages:any) => [...messages, msg])
         })
         socket.on("message_to_space", (msg: any) => {
             addMessage(msg, true)
-            //if(location == String(msg.to) && locationType == "space") {
-            //    setMessages((messages:any) => [...messages, msg])
-            //}
-            //setMessages((messages:any) => [...messages, msg])
         })
 
         socket.on("chat_request_replay", (msg: any) => {
@@ -466,6 +391,7 @@ const Home: NextPage = () => {
                                 />
                                 <ChatInput
                                     sendMessage={sendMessageEasy}
+                                    location={[location, locationType]}
                                 />
                             </div>
                         </div>
@@ -526,38 +452,3 @@ const Home: NextPage = () => {
 }
 
 export default Home
-
-/*
-            <button onClick={() => {
-                socket.emit("socket_message", "test")
-            }}>test</button>
-
-            <button onClick={() => {
-                logout()
-            }}>logout</button>
-
-            <button onClick={() => {
-                socket.emit("socket_join_room", {room:"1"})
-            }}>join1</button>
-            <button onClick={() => {
-                socket.emit("socket_leave_room", {room:"1"})
-            }}>leave1</button>
-
-            <button onClick={() => {
-                socket.emit("socket_join_room", {room:"2"})
-            }}>join2</button>
-            <button onClick={() => {
-                socket.emit("socket_leave_room", {room:"2"})
-            }}>leave2</button>
-
-            <button onClick={() => {
-                socket.emit("socket_send_message_to",{data:"hello,","to":"1",from:"2"})
-            }}>send 1</button>
-            <button onClick={() => {
-                socket.emit("socket_send_message_to",{data:"world!","to":"2",from:"1"})
-            }}>send 2</button>
-
-            <button onClick={() => {
-                if (getToken(true)) console.log(parseJwt(getToken(true)))
-            }}>parse jwt</button>
-*/

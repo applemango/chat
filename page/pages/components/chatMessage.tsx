@@ -1,4 +1,5 @@
 import { dateConversion } from "../../lib/utility"
+import ChatMessageImage from "./chatMessageImage"
 import styles from "./sass/chatMessage.module.scss"
 import UserIcon from "./userIcon"
 const ChatMessage = ({
@@ -21,6 +22,7 @@ const ChatMessage = ({
                 { data.body.split('\n').map((line:string, i:number) => (
                     <p key={i}>{line}</p>
                 )) }
+                { data.file && <ChatMessageImage path={data.file} /> }
             </div>
         </div>
     </div>

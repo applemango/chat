@@ -1,4 +1,6 @@
 import os, json, random
+from secrets import token_hex, token_urlsafe
+import secrets
 from flask import Flask,jsonify,request, session
 from flask import send_from_directory
 from datetime import datetime, timedelta, timezone
@@ -37,6 +39,7 @@ jwt = JWTManager(app)
 migrate = Migrate(app, db)
 
 uploads_icon_path = os.path.join(basedir, 'icons')
+uploads_file_path = os.path.join(basedir, 'contents')
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 ###########################################
 ###########################################
@@ -125,11 +128,10 @@ class Space_user(db.Model): # type: ignore
 class  Message_space(db.Model): # type: ignore
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     to_space = db.Column(db.Integer, db.ForeignKey("space.id"))
-    #to_space_name = db.Column(db.String)
     from_user = db.Column(db.Integer, db.ForeignKey("user.id"))
-    #from_user_name = db.Column(db.String)
     body = db.Column(db.String)
     timestamp = db.Column(db.DateTime, index=True, server_default=func.now())
+    file = db.Column(db.String, default="")
 def get_space_message_data(message: Message_space):
     user = User.query.get(message.from_user)
     to_space = Space.query.get(message.to_space)
@@ -142,7 +144,7 @@ def get_space_message_data(message: Message_space):
         "from_user_icon": user.icon,
         "body": message.body,
         "timestamp": message.timestamp,
-
+        "file": message.file,
         "space_name": to_space.name # for compatibility
     }
 def get_space_message_data_socket(message:Message_space):
@@ -153,11 +155,10 @@ def get_space_message_data_socket(message:Message_space):
 class Message_user(db.Model):  # type: ignore
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     to_user = db.Column(db.Integer, db.ForeignKey("user.id"))
-    #to_user_name = db.Column(db.String())
     from_user = db.Column(db.Integer, db.ForeignKey("user.id"))
-    #from_user_name = db.Column(db.String())
     body = db.Column(db.String)
     timestamp = db.Column(db.DateTime, index=True, server_default=func.now())
+    file = db.Column(db.String, default="")
 def get_message_data(message: Message_user):
     from_user = User.query.get(message.from_user)
     to_user = User.query.get(message.to_user)
@@ -170,7 +171,8 @@ def get_message_data(message: Message_user):
         "from_user_name": from_user.name,
         "from_user_icon": from_user.icon,
         "body": message.body,
-        "timestamp": message.timestamp
+        "timestamp": message.timestamp,
+        "file": message.file
     }
 def get_message_data_socket(message: Message_user):
     data = get_message_data(message)
@@ -181,6 +183,18 @@ def get_messages_user(me: int, you: int)-> Message_user:
     messages = Message_user.query.filter(and_(Message_user.to_user == me,Message_user.from_user == you) | and_(Message_user.to_user == you,Message_user.from_user == me))
     return messages
 
+class File(db.Model):  # type: ignore
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    space_id = db.Column(db.Integer, db.ForeignKey("space.id"))
+    space = db.Column(db.Boolean, default=False)
+    image = db.Column(db.Boolean, default=False)
+    name = db.Column(db.String)
+    path = db.Column(db.String)
+    extension = db.Column(db.String)
+
+class Task(db.Model): # type: ignore
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
 ###########################################
 ###########################################
@@ -191,10 +205,6 @@ def get_messages_user(me: int, you: int)-> Message_user:
 def connect():
     if not token_auth(request.args.get('token')):
         raise ConnectionRefusedError("Token not found")
-
-    #print(decode_token(request.args.get("token")))  # type: ignore
-    #print("Connecting")
-    #print("token:",request.args.get("token"))
 
 @socketIo.event
 def socket_join_room(message):
@@ -207,11 +217,6 @@ def socket_join_room(message):
 @socketIo.event
 def socket_leave_room(message):
     leave_room(message["room"])
-
-#@socketIo.event
-#def socket_send_message_to(message):
-#    for i in range(0,2):
-#        emit("message_from_user",{"data":message["data"] + "," + str(i),"to":message["to"],"from":message["from"]}, to=message["to"])
 
 @socketIo.event
 def socket_send_message_to_user(message):
@@ -227,30 +232,15 @@ def socket_send_message_to_user(message):
         
     msg = Message_user(
         to_user=t.id,
-        #to_user_name=t.name,
         from_user=u.id,
-        #from_user_name=u.name,
-        body=message["body"]
+        body=message["body"],
+        file= message["file"] if message["file"] else None,
     )
 
     db.session.add(msg)
     db.session.commit()
 
-    #emit("message_from_user",{
-    #    "body":message["body"],
-    #    "to":message["to"],
-    #    "from":user_id,
-    #    "timestamp":str(msg.timestamp),
-    #    "from_user_name":msg.from_user_name
-    #},to=str(message["to"]))
     emit("message_from_user", get_message_data_socket(msg), to=str(message["to"]))
-    #emit("message_to_user",{
-    #    "body":message["body"],
-    #    "to":message["to"],
-    #    "from":user_id,
-    #    "timestamp":str(msg.timestamp),
-    #    "from_user_name":msg.from_user_name
-    #}, to=str(user_id))
     emit("message_to_user", get_message_data_socket(msg), to=str(user_id))
 
 @socketIo.event
@@ -267,34 +257,16 @@ def socket_send_message_to_space(message):
 
     msg = Message_space(
         to_space=t.id,
-        #to_space_name=t.name,
         from_user= u.id,
-        #from_user_name=u.name,
         body= message["body"],
+        file= message["file"] if message["file"] else None,
     )
     db.session.add(msg)
     db.session.commit()
 
     space_users = Space_user.query.filter(Space_user.space_id == t.id).filter(Space_user.user_id != u.id)
     for user in space_users:
-        #emit("message_from_space",{
-        #    "body": message["body"],
-        #    "to": message["to"],
-        #    "from": u.id,
-        #    "from_user_name": u.name,
-        #    "from_user_icon": u.icon,
-        #    "space_name": t.name,
-        #    "timestamp": str(msg.timestamp)
-        #}, to=str(user.user_id))
         emit("message_from_space", get_space_message_data_socket(msg), to=str(user.user_id))
-    #emit("message_to_space",{
-    #    "body": message["body"],
-    #    "to": message["to"],
-    #    "from": u.id,
-    #    "from_user_name": u.name,
-    #    "from_user_icon": u.icon,
-    #    "timestamp": str(msg.timestamp)
-    #}, to=str(u.id))
     emit("message_to_space", get_space_message_data_socket(msg), to=str(u.id))
 
 @socketIo.event
@@ -320,34 +292,69 @@ def socket_un_request_reply(message):
     u:User = User.query.get(int(token_data["sub"]))
     y = User.query.filter(message["name"] == User.name).first()
     if u and y:
-        #print("send",y.id)
         emit("chat_un_request_replay",{
             "from": u.id,
             "from_user_name": u.name,
             "from_user_icon": u.icon,
         }, to=str(y.id))
 
-
-#@socketIo.event
-#def socket_connect(message):
-#    print(message)
-#    session['receive_count'] = session.get('receive_count', 0) + 1
-#    emit('my_response',
-#            {'data': message['data'], 'count': session['receive_count']})
-
-#@socketIo.event
-#def socket_message(message):
-#    print(message)
-#    emit('my_response',
-#            {'data': "", 'count': ""})
-
-
-
 ###########################################
 ###########################################
 ##########         API           ##########
 ###########################################
 ###########################################
+
+@app.route("/post/file/space/<space_id>", methods=["POST"])
+@cross_origin()
+@jwt_required()
+def add_file_space(space_id):
+    if "file" not in request.files:
+        return jsonify("file not found"), 400
+    file = request.files["file"]
+    if file and allowed_file(file.filename):
+        user = User.query.get(current_user.id) # type: ignore
+        space = Space.query.get(int(space_id))
+        if not space or not space_id:
+            return jsonify("space not found")
+        random_str = generate_random_str(32)
+        #filename = secure_filename(random_str)
+        filename = secure_filename(random_str + ("." + file.filename.rsplit('.', 1)[1].lower()) if file.filename else "")
+        file.save(os.path.join(uploads_file_path, filename))
+        db.session.add(File(
+            user_id=user.id,
+            space_id=space.id,
+            space= True,
+            image = allowed_file(file.filename),
+            name = file.filename,
+            path = filename,
+            extension = file.filename.rsplit('.', 1)[1].lower() if file.filename else None
+        ))
+        db.session.commit()
+        return jsonify({"data":{"path":filename,"extension": file.filename.rsplit('.', 1)[1].lower() if file.filename else None}}),200
+    return jsonify(""),400
+
+@app.route("/post/file", methods=["POST"])
+@cross_origin()
+@jwt_required()
+def add_file():
+    if "file" not in request.files:
+        return jsonify("file not found"), 400
+    file = request.files["file"]
+    if file and allowed_file(file.filename):
+        user = User.query.get(current_user.id) # type: ignore
+        random_str = generate_random_str(32)
+        filename = secure_filename(random_str + ("." + file.filename.rsplit('.', 1)[1].lower()) if file.filename else "")
+        file.save(os.path.join(uploads_file_path, filename))
+        db.session.add(File(
+            user_id=user.id,
+            image = allowed_file(file.filename),
+            name = file.filename,
+            path = filename,
+            extension = file.filename.rsplit('.', 1)[1].lower() if file.filename else None
+        ))
+        db.session.commit()
+        return jsonify({"data":{"path":filename,"extension": file.filename.rsplit('.', 1)[1].lower() if file.filename else None}}),200
+    return jsonify(""),400
 
 @app.route("/post/icon", methods=["POST"])
 @cross_origin()
@@ -371,9 +378,20 @@ def add_user_icon():
         return jsonify("ok"),200
     return jsonify("error"),400
 
+@app.route("/files/<path>", methods=["GET"])
+@cross_origin()
+@jwt_required()
+def send_image(path):
+    file = File.query.filter(File.path == path).first()
+    if not file:
+        return jsonify("file not found"), 404
+    return send_from_directory(uploads_file_path,path)
+
 @app.route("/icons/<path>")
 @cross_origin()
 def send_icon(path):
+    if not path:
+        return jsonify("error"), 404
     return send_from_directory(uploads_icon_path,path)
 
 @app.route("/icons/id/<user_id>")
@@ -381,6 +399,8 @@ def send_icon(path):
 def send_icon_user_id(user_id):
     u = User.query.get(int(user_id))
     path = u.icon
+    if not path:
+        return jsonify("error"), 404
     return send_from_directory(uploads_icon_path,path)
 
 @app.route("/icons/space/id/<space_id>")
@@ -388,6 +408,8 @@ def send_icon_user_id(user_id):
 def send_icon_space_id(space_id):
     s = Space.query.get(int(space_id))
     path = s.icon
+    if not path:
+        return jsonify("error"), 404
     return send_from_directory(uploads_icon_path,path)
 
 @app.route("/friends/list/", methods=["GET"])
@@ -415,8 +437,6 @@ def friends_request(user_name):
     print(u,y)
     u.request(y)
     db.session.commit()
-    #print(u.requested.all(),u.requester.all())
-    #print(y.requested.all(),y.requester.all())
     return jsonify({"data":get_user_data(y)})
 
 @app.route("/friends/unrequest/<user_name>", methods=["POST"])
@@ -445,14 +465,6 @@ def get_requester():
     result = []
     for requester in requesters:
         result.append(get_user_data(requester))
-    #users = u.requested.all()
-    #r = []
-    #for user in users:
-    #    if not u in user.requested.all():
-    #        r.append(user)
-    #result = []
-    #for r in r:
-    #    result.append(get_user_data(r))
     return jsonify({"data": result})
 
 @app.route("/friends/requesting", methods=["GET"])
@@ -481,13 +493,6 @@ def get_chat_data(user_id):
     result = []
     for msg in messages:
         data = get_message_data(msg)
-        #result.append({
-        #    "body":data["body"],
-        #    "to":data["to"],
-        #    "from":data["from"],
-        #    "timestamp":data["timestamp"],
-        #    "from_user_name":data["from_user_name"]
-        #})
         result.append(data)
     return jsonify({"data": result})
 
@@ -503,13 +508,6 @@ def get_space_chat_data(space_id):
     result = []
     for msg in messages:
         data = get_space_message_data(msg)
-        #result.append({
-        #    "body": data["body"],
-        #    "to":data["to_space"],
-        #    "from": data["from_user"],
-        #    "timestamp": data["timestamp"],
-        #    "from_user_name": data["from_user_name"]
-        #})
         result.append(data)
     return jsonify({"data":result})
 
@@ -566,7 +564,7 @@ def join_space(space_name):
 def leave_space(space_name):
     space = Space.query.filter(Space.name == space_name).first()
     space_user = Space_user.query.filter(Space_user.user_id==current_user.id).filter(Space_user.space_id==space.id).first()  # type: ignore
-    db.delete(space_user)
+    db.session.delete(space_user)
     db.session.commit()
     return jsonify("success")
 
