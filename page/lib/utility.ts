@@ -1,7 +1,7 @@
-export function floor(n:number,p:number = 1) {
+export const floor = (n:number,p:number = 1) => {
     return Math.floor(n*(10**p))/(10**p)
 }
-export function dateConversion(date:Date | number): string {
+export const dateConversion = (date:Date | number): string => {
     const time = Date.now()
     //const time = time_jst//-(1000*60*60*9) 
     //const time = time_jst
@@ -20,4 +20,7 @@ export function dateConversion(date:Date | number): string {
     if (minutes >= 1) {return `${minutes} minutes ago`}
     if (seconds >= 1) {return `${seconds} seconds ago`}
     return "0 seconds ago"
+}
+export const getExtension = (name: string) => {
+    return name.split(".")[name.split(".").length - 1]
 }

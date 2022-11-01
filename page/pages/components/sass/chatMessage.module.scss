@@ -32,3 +32,20 @@
         margin-left: 6px;
     }
 }
+
+.file {
+    width: 200px;
+    height: 120px;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    p {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: #666;
+    }
+}

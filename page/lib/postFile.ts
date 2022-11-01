@@ -10,7 +10,7 @@ export async function postMessageFile(selectedFile:File, space: boolean, spaceId
             const formData = new FormData();
             formData.append("file", selectedFile)
             const res = await axios.post(
-                getUrl(space ? `post/fo;e/space/${spaceId}` : "post/file"),
+                getUrl(space ? `post/file/space/${spaceId}` : "post/file"),
                 formData, {
                     headers: {
                         "Content-Type": "multipart/form-data;"

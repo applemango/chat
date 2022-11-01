@@ -1,4 +1,5 @@
-import { dateConversion } from "../../lib/utility"
+import { dateConversion, getExtension } from "../../lib/utility"
+import ChatMessageFile from "./chatMessageFile"
 import ChatMessageImage from "./chatMessageImage"
 import styles from "./sass/chatMessage.module.scss"
 import UserIcon from "./userIcon"
@@ -22,7 +23,13 @@ const ChatMessage = ({
                 { data.body.split('\n').map((line:string, i:number) => (
                     <p key={i}>{line}</p>
                 )) }
-                { data.file && <ChatMessageImage path={data.file} /> }
+                { data.file && <div>
+                    { ["png","jpg","jpeg"].indexOf(getExtension(data.file)) + 1 ? (
+                        <ChatMessageImage path={data.file} />
+                    ):(
+                        <ChatMessageFile path={data.file} />
+                    )}
+                </div> }
             </div>
         </div>
     </div>

@@ -311,7 +311,7 @@ def add_file_space(space_id):
     if "file" not in request.files:
         return jsonify("file not found"), 400
     file = request.files["file"]
-    if file and allowed_file(file.filename):
+    if file:
         user = User.query.get(current_user.id) # type: ignore
         space = Space.query.get(int(space_id))
         if not space or not space_id:
@@ -340,7 +340,7 @@ def add_file():
     if "file" not in request.files:
         return jsonify("file not found"), 400
     file = request.files["file"]
-    if file and allowed_file(file.filename):
+    if file:
         user = User.query.get(current_user.id) # type: ignore
         random_str = generate_random_str(32)
         filename = secure_filename(random_str + ("." + file.filename.rsplit('.', 1)[1].lower()) if file.filename else "")

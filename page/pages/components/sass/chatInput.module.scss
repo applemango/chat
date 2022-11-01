@@ -18,9 +18,11 @@
     width: 32px;
     height: 32px;
     cursor: pointer;
+    margin-right: 10px;
+    transition: all 0.3s ease;
     &:hover {
-        //background-color: #eeeeee50;
-        outline: 1px solid #00bfd8;
+        background-color: #eee;
+        //outline: 1px solid #00bfd8;
     }
 }
 .upload_button {
@@ -32,6 +34,7 @@
     background: none;
     cursor: pointer;
     margin-right: 6px;
+    transition: all 0.3s ease;
     &:hover {
         background-color: #eee;
     }
