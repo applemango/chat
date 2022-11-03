@@ -8,7 +8,7 @@ const ChatMessageFile = ({
 }: {
     path: string
 }) => {
-    return <a target="_blank" href={getUrl(`files/${path}?jwt=${getToken()}`)}>
+    return <a target="_blank" rel="noopener noreferrer" href={getUrl(`files/${path}?jwt=${getToken()}`)}>
         <div className={styles.file}>
             <p>{getExtension(path)}</p>
         </div>

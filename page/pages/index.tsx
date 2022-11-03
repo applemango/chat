@@ -71,7 +71,7 @@ const Home: NextPage = () => {
         }
         setSettings(true)
         toast((t) => {
-            const [selectedFile, setSelectedFile]:any = useState<File>();
+            const [selectedFile, setSelectedFile] = useState<File>();
             useEffect(() => {
                 setSettingsId(t.id)
             },[t])
@@ -79,25 +79,23 @@ const Home: NextPage = () => {
             return  <span className={styles.toast_settings}>
                 <span className={styles.toast}>
                     <div className={styles.toast_main}>
-
-                            <h2 className={styles.settings_name}>icon</h2>
-                            <div className = {styles.settings_icon }>
-                                <input className = {styles.input_file} name="file" type="file" onChange = {(e) => e.target.files ? setSelectedFile(e.target.files[0]) : ""} accept=".png, .jpg" />
-                                <div className = {styles.input_file_}>
-                                    <div className = {styles.input_file__}>
-                                        <div>
-                                            { selectedFile && (
-                                                <div className = {styles.logo}></div>
-                                            )}
-                                            <p className = { selectedFile ? (styles.active) : ("")}>{selectedFile ? (selectedFile.name) : ("Drag and drop image or")}</p>
-                                            { !selectedFile && (
-                                                <button>Upload</button>
-                                            )}
-                                        </div>
+                        <h2 className={styles.settings_name}>icon</h2>
+                        <div className = {styles.settings_icon }>
+                            <input className = {styles.input_file} name="file" type="file" onChange = {(e) => e.target.files ? setSelectedFile(e.target.files[0]) : ""} accept=".png, .jpg" />
+                            <div className = {styles.input_file_}>
+                                <div className = {styles.input_file__}>
+                                    <div>
+                                        { selectedFile && (
+                                            <div className = {styles.logo}></div>
+                                        )}
+                                        <p className = { selectedFile ? (styles.active) : ("")}>{selectedFile ? (selectedFile.name) : ("Drag and drop image or")}</p>
+                                        { !selectedFile && (
+                                            <button>Upload</button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-
+                        </div>
                     </div>
                     <div className={styles.toast_buttons}>
                         <button className={styles.toast_close} onClick={() => {
@@ -107,9 +105,11 @@ const Home: NextPage = () => {
                             Close
                         </button>
                         <button className={styles.toast_apply} onClick={() => {
-                            settingsIcon(selectedFile)
-                            setSettings(false)
-                            toast.dismiss(t.id)
+                            if(selectedFile) {
+                                settingsIcon(selectedFile)
+                                setSettings(false)
+                                toast.dismiss(t.id)
+                            }
                         }}>
                             apply
                         </button>
@@ -123,7 +123,6 @@ const Home: NextPage = () => {
     }
 
     const notify = (msg: any, space: boolean = false) => {
-        //toast("here is your toast")
         toast((t) => (
             <span className={styles.toast}>
                 <div className={styles.toast_main} onClick={() => {
@@ -169,8 +168,6 @@ const Home: NextPage = () => {
         setMessages(res)
     }
     const sendMessageUser = async (to : number, body : string, path: string) => {
-        //console.log(to, body)
-        //return
         const res = await isLoginAndLogin()
         if(res) {
             socket.emit("socket_send_message_to_user", {"body":body,"file":path,"to":to,"token":getToken()})
@@ -206,30 +203,17 @@ const Home: NextPage = () => {
     const createSpace_ = async () => {
         setIsOpenModal(true)
         setModalType("createSpace")
-        //const res = await createSpace("test","test")
-        //setSpaces((value:any)=> [...value, {"id":res.id, "name":res.name}])
-        //console.log(res)
     }
     const deleteUser__ = async (user: string) => {
         const res = await UnRequestChat(user)
         socket.emit("socket_un_request_reply", {"name":user,"token":getToken()})
         reload()
-        //const rl = async () => {
-        //    const res = await getRequesting()
-        //    setRequesting(res)
-        //}
-        //rl()
     }
     const addUser__ = async (user: string) => {
         setIsOpenModal(false)
         const res = await requestChat(user)
         socket.emit("socket_request_reply", {"name":user,"token":getToken()})
         reload()
-        //const rl = async () => {
-        //    const res = await getRequesting()
-        //    setRequesting(res)
-        //}
-        //rl()
     }
     const addUser_ = async () => {
         setIsOpenModal(true)
@@ -285,7 +269,6 @@ const Home: NextPage = () => {
     },[])
 
     const reload = async () => {
-        console.log("reload")
         const fl = async () => {
             const res = await getFriendsList()
             setFriends(res)
@@ -321,12 +304,10 @@ const Home: NextPage = () => {
         })
 
         socket.on("chat_request_replay", (msg: any) => {
-            console.log("chat_request_replay")
             reload()
         })
 
         socket.on("chat_un_request_replay", (msg: any) => {
-            console.log("chat_un_request_replay")
             reload()
         })
     },[])

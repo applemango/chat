@@ -1,7 +1,7 @@
 import styles from "./sass/createSpace.module.scss"
 import { useState } from "react"
 
-const addUser = ({
+const AddUser = ({
     add,
     cancel
 }:{
@@ -21,4 +21,4 @@ const addUser = ({
         </div>
     </div>
 }
-export default addUser
+export default AddUser

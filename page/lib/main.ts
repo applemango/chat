@@ -40,8 +40,8 @@ export async function get(url: string,header: any, login: boolean, token:boolean
     } catch (e:any) {
         if (e.response.status == 401) {
             const res = await logout()
-            const router = useRouter()
-            router.replace("/login")
+            //const router = useRouter()
+            //router.replace("/login")
         }
         console.error(e)
         throw e
@@ -71,8 +71,8 @@ export async function post(url: string,header: any, body: any, login: boolean, t
     } catch (e:any) {
         if (e.response.status == 401) {
             const res = await logout()
-            const router = useRouter()
-            router.replace("/login")
+            //const router = useRouter()
+            //router.replace("/login")
         }
         console.error(e)
         throw e

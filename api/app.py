@@ -581,6 +581,45 @@ def delete_friend(user_id):
     db.session.commit()
     return jsonify("success")
 
+@app.route("/search", methods=["GET"])
+@cross_origin()
+@jwt_required()
+def search_all():
+    query = request.args.get("q")
+    user = User.query.get(int(current_user.id))  # type: ignore
+
+    result_friends = []
+    result_spaces = []
+    result_users_messages = []
+    result_spaces_messages = []
+
+    friends = user.get_friends_list()
+    for f in friends:
+        if query in f.name:
+            result_friends.append(get_user_data(f))
+
+    users_messages = Message_user.query.filter(Message_user.body.contains(query)).all()
+    for m in users_messages:
+        result_users_messages.append(get_message_data(m))
+    
+    spaces_messages = Message_space.query.filter(Message_space.body.contains(query)).all()
+    for m in spaces_messages:
+        result_spaces_messages.append(get_space_message_data(m))
+
+    space_users = Space_user.query.filter(Space_user.user_id == user.id).all()
+    for s in space_users:
+        sp = Space.query.get(s.space_id)
+        if query in sp.name:
+            result_spaces.append(get_space_data(sp))
+
+    return jsonify({
+        "data": {
+            "friends":result_friends,
+            "spaces":result_spaces,
+            "users_messages": result_users_messages,
+            "spaces_messages": result_spaces_messages
+        }
+    })
 
 
 ###########################################
@@ -692,16 +731,16 @@ if __name__ == '__main__':
     #db.drop_all()
     #db.create_all()
 
-    apple = User(name="apple")
-    apple.set_password("apple")
-    db.session.add(apple)
-    
-    mango = User(name="mango")
-    mango.set_password("mango")
-    db.session.add(mango)
-    
-    db.drop_all()
-    db.create_all()
-    db.session.commit()
+    #apple = User(name="apple")
+    #apple.set_password("apple")
+    #db.session.add(apple)
+    #
+    #mango = User(name="mango")
+    #mango.set_password("mango")
+    #db.session.add(mango)
+    #
+    #db.drop_all()
+    #db.create_all()
+    #db.session.commit()
 
     app.run(debug=True, host='0.0.0.0', port=5000)

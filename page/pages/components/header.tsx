@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react"
+import { getSearchData } from "../../lib/search"
 import { getToken, parseJwt } from "../../lib/token"
+import ChatMessage from "./chatMessage"
 import styles from "./sass/header.module.scss"
 import UserIcon from "./userIcon"
 const Header = ({
@@ -8,6 +11,18 @@ const Header = ({
     goHome: Function
     settings: Function
 }) => {
+    const [query, setQuery] = useState("")
+    const [result, setResult] = useState<any>()
+    useEffect(() => {
+        if(!query)
+            return
+        const s = setTimeout(async () => {
+            const res = await getSearchData(query)
+            setResult(res)
+            console.log(res)
+        }, 500)
+        return () => clearTimeout(s)
+    },[query])
     return <div className={styles.main}>
         <div className={styles.left} onClick={() => goHome()}>
             <div>
@@ -38,13 +53,41 @@ const Header = ({
             <p>Chat</p>
         </div>
         <div className={styles.search}>
-            <div className={styles.input_box}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="icon icon-tabler icon-tabler-search" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="#424242" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <circle cx="10" cy="10" r="7" />
-                    <line x1="21" y1="21" x2="15" y2="15" />
-                </svg>
-                <input className={styles.input} type="text" placeholder="search message, space, user" />
+            <div className={styles.input}>
+                <div className={styles.input_box}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="icon icon-tabler icon-tabler-search" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="#424242" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <circle cx="10" cy="10" r="7" />
+                        <line x1="21" y1="21" x2="15" y2="15" />
+                    </svg>
+                    <input className={styles.input} value={query} onChange={(e: any) => setQuery(e.target.value)} type="text" placeholder="search message, space, user" />
+                    { result &&
+                        <div className={styles.output}>
+                            { result.friends.length > 0 && result.friends.map((friend: any, i:number) => (
+                                <div className={styles.friend} key={i}>
+                                    <UserIcon className={styles.user_icon} userId={friend.id}  />
+                                    <p>{friend.name}</p>
+                                </div>
+                            ))}
+                            { result.spaces.length > 0 && result.spaces.map((space: any, i:number) => (
+                                <div className={styles.spaces} key={i}>
+                                    <UserIcon className={styles.user_icon} spaceId={space.id}  />
+                                    <p>{space.name}</p>
+                                </div>
+                            ))}
+                            { result.users_messages.length > 0 && result.users_messages.map((message: any, i:number) => (
+                                <div className={styles.message} key={i}>
+                                    <ChatMessage data={message} />
+                                </div>
+                            ))}
+                            { result.spaces_messages.length > 0 && result.spaces_messages.map((message: any, i:number) => (
+                                <div className={styles.message} key={i}>
+                                    <ChatMessage data={message} />
+                                </div>
+                            ))}
+                        </div>
+                    }
+                </div>
             </div>
         </div>
         <div className={styles.info}>

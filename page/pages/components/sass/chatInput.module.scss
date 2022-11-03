@@ -1,6 +1,6 @@
 .main {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: flex-end;
     //margin: 12px 0;
     padding: 12px 0;
@@ -9,6 +9,7 @@
 }
 
 .send_button {
+    margin: 4px 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -93,4 +94,8 @@
         background-color: #fff;
     }
     .input::-webkit-scrollbar {display: flex}
+}
+
+.file {
+    width: fit-content;
 }
